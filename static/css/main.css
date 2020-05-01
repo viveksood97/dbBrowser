@@ -34,9 +34,16 @@ body {
     width:239px;
     background: #f6f6fc;
     border-right: 1px solid #c6c9cc81;
+    
+  }
+
+  nav a{
+    text-decoration: none;
   }
 
   nav p{
+    color: #666;
+    
     font-weight: bold;
     font-size: 14px;
     margin:15px 15px 15px 30px;

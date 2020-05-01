@@ -95,14 +95,7 @@ def index():
     tableNames =  pd.read_sql('show tables', con=db_connection )
     return render_template('root.html',tableNames = tableNames['Tables_in_CEN_db_mysql'].tolist(),header=list(df1.columns))
 
-@app.route('/table')
-def table():
-    
-    df1 = pd.read_sql('select * from cenCiscoXE_Interface limit 0,1', con=db_connection )
-    tableNames =  pd.read_sql('show tables', con=db_connection )
-    
 
-    return render_template('root.html',tableNames = tableNames['Tables_in_CEN_db_mysql'].tolist() ,header=list(df1.columns))
 
 @app.route("/load")
 def load():
