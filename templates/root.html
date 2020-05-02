@@ -4,138 +4,136 @@
     <link rel="shortcut icon" href="#">
 </head>
 
-<!-- {{value1}} -->
+
 
 <body>
     <header>
         <p>AirtelDB</p>
-        <p>Database:ajdaj;daj;jda</p>
-        <p class="nameTable"></p>
+        <p>Database: </p>
+        <select onchange="selectDatabase(this.value)" class="database">
+            <option value="" selected disabled hidden>Choose Database</option>
+            <option value="router_db_mysql">MPLS ISP Database</option>
+            <option value="CEN_db_mysql">CEN Database</option>
+        </select>
+        <p class="header"></p>
+        <p class="download"></p>
     </header>
-    <nav>
-        {% for item in tableNames %}
-        <p onclick='tableSelect(this)'><i class="fa fa-table" aria-hidden="true"></i> {{item}}</p>
-        {% endfor %}
-        
-    </nav>
-    
+    <nav class="tableNames"></nav>>
     <div class="terminal-window">
-        <table class="table">
+        
+        <table class="table123">
 
-            <thead onClick='hideSearch()'>
-                <tr>
-                    <th class="realheader">Index</th>
-                    {% for item in header %}
-                    <th class="realheader">{{item}} </th>
-                    {% endfor %}
-                </tr>
+            <thead >
+                <tr class="headersOfTable"></tr>
             </thead>
-            <thead>
-                <tr>
-                    <th class="realicon"></th>
-                    {% for item in header%}
-                    <th class="realicon {{loop.index}}">
-                        <form>
-                            <div class="search id0"><input name="form" class="filter" type="text" autocomplete="off"
-                                    placeholder="filter" onkeyup='filterContent(this)' /></div>
-                            <div class="search id1"><input name="form" class="drop" type="text" autocomplete="off"
-                                    placeholder="drop" /></div>
-                            <div class="search id2"><input name="form" class="sort" type="text" autocomplete="off"
-                                    placeholder="sort" /></div>
-
-                        </form>
-                        <div class="icons"><i class="fa fa-sort"></i><i
-                                onClick='event.stopPropagation(); showSearchfilter(this)' class="fa fa-filter"></i><i
-                                onClick=' event.stopPropagation(); showSearchdrop(this)' class="fa fa-times"></i><i
-                                onClick=' event.stopPropagation(); removeFilter(this)' style="display:none"
-                                class="fa fa-times-circle"></i>
-                        </div>
-                    </th>
-                    {% endfor %}
-                </tr>
+            <thead   >
+                <tr class="iconsOfTable"></tr>
             </thead>
 
-            <tbody onClick='hideSearch()' class="tablebody">
-                {{value}}
+            <tbody class="tablebody">
             </tbody>
         </table>
+        
         <div class="END"></div>
         <div class="watcher"></div>
     </div>
+
+
 </body>
 
 
 <script>
-
-    let counter = 0;
-    window.counter1 = ["nocolumn", "noword", counter];
-    var watcher = document.querySelector('.watcher');
-    var searcher = document.querySelector('.searcher');
-    var table = document.querySelector('.tablebody');
-    let nameTable = document.querySelector('.nameTable');
-    var tableHead = document.querySelectorAll('.realheader');
     var search = document.querySelectorAll('.search');
+    let tableName = ""
+    let counter = 0;
     let timeout = null;
+    window.userData = ["database", "table", "nocolumn", "noword", counter];
+    var table = document.querySelector('.tablebody');
+    watcher = document.querySelector(".watcher")
 
-    function tableSelect(e) {
-       
-        
-        fetch(`/selectTable?c=${[e.childNodes[1].textContent]}`)
-        nameTable.textContent = "Table :"+e.childNodes[1].textContent;
-        table.innerHTML = ""
-        window.counter1[2] = 0
-    }
-    function removeFilter(e) {
-
-        e.parentNode.parentNode.childNodes[1].childNodes[1].childNodes[0].value = ""
-        filterContent(e.parentNode.parentNode.childNodes[1].childNodes[1].childNodes[0])
-        e.style.display = "none"
-        // alert(`filter removed from ${e.parentNode.parentNode.parentNode.className}`)
-    }
-    function filterContent(e) {
-        clearTimeout(timeout);
-        timeout = setTimeout(function () {
-            
-            if (e.value.length > 0) {
-                e.parentNode.parentNode.parentNode.childNodes[3].childNodes[3].style.display = "block";
-            }
-            else {
-                e.parentNode.parentNode.parentNode.childNodes[3].childNodes[3].style.display = "none";
-            }
-            if ((e.charCode || e.keyCode) === 13) {
-                e.preventDefault();
-            }
-
-
-            let index = e.parentNode.parentNode.parentNode.className
-            let columnName = tableHead[index.split(" ")[1]].textContent
-            window.counter1 = [columnName, e.value, counter]
-            watcher.style.display = "block"
-            table.innerHTML = ""
-        }, 300);
-
-    }
-
+    database = document.querySelector(".database")
+    
     function showSearchfilter(e) {
         e.parentNode.parentNode.childNodes[1].childNodes[1].style.display = "block";
     }
     function showSearchdrop(e) {
         e.parentNode.parentNode.childNodes[1].childNodes[3].style.display = "block";
     }
-    function hideSearch() {
-        search.forEach(ele => {
-            ele.style.display = "none";
-        })
-    }
     async function loadItems() {
-        let response = await fetch(`/load?c=${window.counter1}`)
-        let data = await response.json().then(data => {
-            if (data === "<p class='noEntry'><p>") {
+        let response1 = await fetch(`/load?c=${window.userData}`)
+        let data1 = await response1.json().then(data1 => {
+            if (data1 === "<p class='noEntry'><p>") {
                 watcher.style.display = "none";
             }
-            table.insertAdjacentHTML("beforeend", data);
-            window.counter1[2] += 35;
+            table.insertAdjacentHTML("beforeend", data1);
+            window.userData[4] += 35;
         })
+    }
+
+    async function selectDatabase(e) {
+
+        window.userData[0] = e;
+        let response = await fetch(`/database?c=${window.userData[0]}`)
+        let string = "";
+        let data = await response.json().then(data => {
+            main = data["Tables_in_" + e]
+            Object.keys(main).forEach(ele => {
+                string = string + `<p onclick='tableSelect(this.textContent)'><i class="fa fa-table" aria-hidden="true"></i>${main[ele]}</p>`
+            })
+            document.querySelector(".tableNames").innerHTML = string;
+        })
+    }
+
+    async function tableSelect(e) {
+        document.querySelector(".terminal-window").style.display = "block"
+        document.querySelector(".header").textContent = `TableName:  ${e}`
+        document.querySelector(".download").textContent = `Download:`
+        if(document.querySelector('.tablebody').innerHTML.length > 13){
+            document.querySelector('.tablebody').innerHTML = ""
+        }
+        let string = `<th class="realheader index">Index</th>`
+        let string2 = `<th class="realicon index"></th>`
+        let counterForLoop = 0
+        
+        window.userData[4] = 0;
+        window.userData[3] = ""
+        window.userData[1] = e;
+        let response = await fetch(`/tableHeaders?c=${window.userData}`)
+        let data = await response.json().then(data => {
+            data.forEach(ele => {
+                string = string + `<th class="realheader">${ele} </th>`
+                string2 = string2 + `<th class="realicon ${counterForLoop}">
+                        <form>
+                            <div class="search id0"><input name="form" class="filter" type="text" autocomplete="off"
+                                    placeholder="filter" onkeyup='filterContent(this)' /></div>
+                        </form>
+                    </th>`
+                counterForLoop += 1
+            })
+            document.querySelector(".headersOfTable").innerHTML = string;
+            document.querySelector(".iconsOfTable").innerHTML = string2;
+
+        })
+        intersectionObserver.observe(watcher)
+
+
+    }
+
+    function filterContent(e) {
+        clearTimeout(timeout);
+        timeout = setTimeout(function () {
+            if ((e.charCode || e.keyCode) === 13) {
+                e.preventDefault();
+            }
+            let index = e.parentNode.parentNode.parentNode.className
+            let columnName = document.getElementsByClassName('realheader')[Number(index.split(" ")[1])+1].textContent
+            window.userData[2] = columnName;
+            window.userData[3] = e.value;
+            window.userData[4] = counter;
+            watcher.style.display = "block"
+            table.innerHTML = ""
+        }, 200);
+
     }
     var intersectionObserver = new IntersectionObserver(entries => {
         if (entries[0].intersectionRatio <= 0) {
@@ -143,7 +141,9 @@
         }
         loadItems();
     });
-    intersectionObserver.observe(watcher)
+
+
+
 
 
 </script>
