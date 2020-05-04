@@ -1,11 +1,14 @@
-from flask import Flask, render_template, request, jsonify, make_response,Markup,session,redirect, url_for
+from flask import Flask, render_template, request, jsonify, make_response,Markup,session,redirect, url_for, Response
 from flask import send_file
 import pandas as pd
+import numpy as np
 from sqlalchemy import create_engine
 import datetime
 import pymysql
 import time
 import json
+import math
+from io import BytesIO
 
 
 
@@ -31,7 +34,6 @@ def queryBuilder(database,tableName,word,columnName):
             string = f'select * from {database}.{tableName}'
             paramDict =  dict()
         else:
-            
             if len(word)!=0:
                 session[columnName] = word
             
@@ -92,7 +94,7 @@ def lazy(query,shape,param="none"):
 @app.route('/')
 def index():
     session.clear()
-    return render_template('test.html')
+    return render_template('root.html')
 
 @app.route('/database')
 def database():
@@ -115,15 +117,11 @@ def tableHeaders():
    
     headers =  pd.read_sql('select * from '+database+'.'+table+' limit 0,1;', con=db_connection )
     headers1 = list(headers.columns)
-
-    
-    
     res = make_response(json.dumps(headers1), 200)
     return res
 
 @app.route("/load")
 def load():
-    print(bool(request))
     if request.args:
         mainData = request.args.get("c")
     data = mainData.split(",")
@@ -133,6 +131,7 @@ def load():
     word = data[3]
     counter = int(data[4])
     query,params = queryBuilder(database,table,word,column)
+    # session["query"] = [query,params]
     print(query,params)
     if query:
         print(f"Returning posts {counter} to {counter + 35}")
@@ -143,7 +142,61 @@ def load():
     return res
     
 
+@app.route('/downloadFile')
+def downloadFile():
+    if request.args:
+        mainData = request.args.get("c")
+    
+    # else:
+    data = mainData.split(",")
+    database = data[0] 
+    table = data[1]
+    column = data[2]
+    word = data[3]
+    query,params = queryBuilder(database,table,word,column)
+    # query = "select * from CEN_db_mysql.cenCiscoXE_Interface limit 0,1;"
+    # params = "none"
+    print(query,params)
+    
+    startTime = time.time()
+    if params!= "none":
+        df1 = pd.read_sql(query, con=db_connection,params=params)
+    else:
+        df1 = pd.read_sql(query, con=db_connection )
+    
+    # x = df1.astype(str).values.flatten().tolist()
+    
 
+    # def generate():
+    #     for ele in x:
+    #        yield ','.join(ele.split())  + '\n'
+    # return Response(generate(), mimetype='text/csv')
+    buffer = BytesIO()
+    buffer.write(df1.to_csv().encode('utf-8'))
+    buffer.seek(0)
+    
+    return send_file(buffer,
+                     mimetype='text/csv',
+                     attachment_filename='downloadFile.csv',
+                     as_attachment=True)
+    # name = "report.csv"
+    # maxSize = 10
+    # if df1.shape[0] < maxSize:
+    #     resp = make_response(df1.to_csv())
+    #     resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
+    #     resp.headers["Content-Type"] = "text/csv"
+
+    #     return resp
+    # else:
+    #    for ele in df1.iterrows():
+    #        print(type(ele))
+
+    
+    
+    
+
+    #return Response(df1, mimetype='text/csv',headers={'Content-Disposition': f'attachment; filename={"report.csv"}'})
+    
 
 
 

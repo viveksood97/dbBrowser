@@ -1,39 +1,40 @@
 <head>
     <link rel="stylesheet" href="{{ url_for('static', filename='./css/main.css') }}" type="text/css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="shortcut icon" href="#">
+    <!-- <script type="text/javascript" src="{{ url_for('static', filename='./js/xlsx.full.min.js') }}"></script> -->
 </head>
 
 
 
 <body>
     <header>
-        <p>AirtelDB</p>
-        <p>Database: </p>
+        <p style="color:#FF083B;margin:15px 70px 15px 70px;"><i class="fa fa-bolt" aria-hidden="true"></i> Ingress</p>
+        <p><i class="fa fa-database" aria-hidden="true"></i> Database: </p>
         <select onchange="selectDatabase(this.value)" class="database">
             <option value="" selected disabled hidden>Choose Database</option>
             <option value="router_db_mysql">MPLS ISP Database</option>
             <option value="CEN_db_mysql">CEN Database</option>
         </select>
         <p class="header"></p>
-        <p class="download"></p>
+        <p class="download" onClick="downloadFile()"></p>
     </header>
-    <nav class="tableNames"></nav>>
+    <nav class="tableNames"></nav>
+    <div class="tableInfo"></div>
     <div class="terminal-window">
-        
+
         <table class="table123">
 
-            <thead >
+            <thead>
                 <tr class="headersOfTable"></tr>
             </thead>
-            <thead   >
+            <thead>
                 <tr class="iconsOfTable"></tr>
             </thead>
 
             <tbody class="tablebody">
             </tbody>
         </table>
-        
+
         <div class="END"></div>
         <div class="watcher"></div>
     </div>
@@ -52,7 +53,7 @@
     watcher = document.querySelector(".watcher")
 
     database = document.querySelector(".database")
-    
+
     function showSearchfilter(e) {
         e.parentNode.parentNode.childNodes[1].childNodes[1].style.display = "block";
     }
@@ -60,13 +61,19 @@
         e.parentNode.parentNode.childNodes[1].childNodes[3].style.display = "block";
     }
     async function loadItems() {
+        
         let response1 = await fetch(`/load?c=${window.userData}`)
         let data1 = await response1.json().then(data1 => {
-            if (data1 === "<p class='noEntry'><p>") {
+           
+            
+            table.insertAdjacentHTML("beforeend", data1);
+            window.userData[4] += 35; 
+            if (table.childNodes.length < 70) {
                 watcher.style.display = "none";
             }
-            table.insertAdjacentHTML("beforeend", data1);
-            window.userData[4] += 35;
+            else{
+                watcher.style.display = "block";
+            }
         })
     }
 
@@ -80,6 +87,7 @@
             Object.keys(main).forEach(ele => {
                 string = string + `<p onclick='tableSelect(this.textContent)'><i class="fa fa-table" aria-hidden="true"></i>${main[ele]}</p>`
             })
+            string = string + ``
             document.querySelector(".tableNames").innerHTML = string;
         })
     }
@@ -87,14 +95,21 @@
     async function tableSelect(e) {
         document.querySelector(".terminal-window").style.display = "block"
         document.querySelector(".header").textContent = `TableName:  ${e}`
-        document.querySelector(".download").textContent = `Download:`
-        if(document.querySelector('.tablebody').innerHTML.length > 13){
+        
+        document.querySelector(".download").innerHTML = `Export to .CSV <i style="color:#FF083B;padding-left:5px"class="fa fa-download" aria-hidden="true"></i>`
+        let tableData = `<p>Table Information</p>
+        <p class="tableName1"></p>
+        <p>Number of Rows</p>
+        <p>Number of Columns</p>`
+        document.querySelector(".tableInfo").innerHTML = tableData;
+        document.querySelector(".tableName1").textContent = `TableName:  ${e}`
+        if (document.querySelector('.tablebody').innerHTML.length > 13) {
             document.querySelector('.tablebody').innerHTML = ""
         }
         let string = `<th class="realheader index">Index</th>`
         let string2 = `<th class="realicon index"></th>`
         let counterForLoop = 0
-        
+
         window.userData[4] = 0;
         window.userData[3] = ""
         window.userData[1] = e;
@@ -119,23 +134,66 @@
 
     }
 
-    function filterContent(e) {
+    async function filterContent(e) {
+        
         clearTimeout(timeout);
-        timeout = setTimeout(function () {
+        
+        timeout = await setTimeout(function () {
             if ((e.charCode || e.keyCode) === 13) {
                 e.preventDefault();
             }
+           
             let index = e.parentNode.parentNode.parentNode.className
-            let columnName = document.getElementsByClassName('realheader')[Number(index.split(" ")[1])+1].textContent
+            let columnName = document.getElementsByClassName('realheader')[Number(index.split(" ")[1]) + 1].textContent
             window.userData[2] = columnName;
             window.userData[3] = e.value;
             window.userData[4] = counter;
             watcher.style.display = "block"
             table.innerHTML = ""
+           
         }, 200);
 
     }
+
+    async function downloadFile() {
+        document.querySelector(".download").textContent = `Exporting`
+        await fetch(`/downloadFile?c=${window.userData}`).then(function (response) {
+            // returns a Headers{} object
+            response.blob().then(function (myBlob) {
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(myBlob);
+                link.download = "filename.csv";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                document.querySelector(".download").textContent = `Export to .CSV <i style="color:#FF083B;padding-left:5px"class="fa fa-download" aria-hidden="true"></i>`
+            });
+        });
+        // let data1 = await response1.blob().then(data1 => {
+        //     console.log(response.headers);
+        // })
+        // document.querySelector(".download").textContent = `Downloaded`
+        // document.querySelector(".download").innerHTML = `<a href="{{ url_for('downloadFile',c='') }}"`+window.userData+`>ISP-ISIS_LDP_Missing_Report.csv</a>`
+        // console.log(`<a href="{{ url_for('downloadFile',c='') }}"  `+window.userData+`>ISP-ISIS_LDP_Missing_Report.csv</a>`)
+        //     console.log("request sent")
+        //     var newDiv = document.createElement('div');
+        //     newDiv.innerHTML = ele;
+        //     console.log("loaded to browser")
+        //     var ws = XLSX.utils.table_to_sheet(newDiv.childNodes[0]);
+
+        //     /* add to workbook */
+        //     var wb = XLSX.utils.book_new();
+        //     XLSX.utils.book_append_sheet(wb, ws, "People");
+
+        //     /* generate an XLSX file */
+
+
+
+        //     return XLSX.writeFile(wb, "sheetjs.xlsx");
+        // })
+    }
     var intersectionObserver = new IntersectionObserver(entries => {
+      
         if (entries[0].intersectionRatio <= 0) {
             return;
         }
