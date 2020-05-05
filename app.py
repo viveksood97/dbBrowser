@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify, make_response,Markup,session,redirect, url_for, Response
+from flask_restful import Resource, Api
 from flask import send_file
 import pandas as pd
 import numpy as np
@@ -25,48 +26,50 @@ endTime = time.time()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "OCML3BRawWEUeaxcuKHLpw"
+api = Api(app)
+
+
 
 def queryBuilder(database,tableName,word,columnName):
     
     paramDict = dict()
-    if(word):
-        if (word == "noword" or word == "") and (columnName == "nocolumn" or columnName == ""):
-            string = f'select * from {database}.{tableName}'
-            paramDict =  dict()
-        else:
-            if len(word)!=0:
-                session[columnName] = word
-            
-            else:
-                if(session.get(columnName)):
-                    session.pop(columnName, None)
-
-            
-            string = f'select * from {database}.{tableName} Where'
-            
-            count = 0
-            listOfKeys = session.keys()
-            if(len(listOfKeys)>0):
-                for key,value in session.items():
-                    if(value):
-                        string = string +' '+ key + "LIKE %(word"+str(count)+")s "
-                        paramDict["word"+str(count)] = "%"+value+"%"
-                        if count != (len(listOfKeys) - 1):
-                            string = string + "AND "
-                        count += 1    
-
-                        
-                    else: 
-                        string = ""
-                
-                        
-            else:
-                string = ""
-    else:
+    # if(word):
+    if word == "noword" and columnName == "nocolumn":
         string = f'select * from {database}.{tableName}'
         paramDict =  dict()
+    else:
+        if len(word)!=0:
+            session[columnName] = word
+        
+        else:
+            if(session.get(columnName)):
+                session.pop(columnName, None)
+
+        
+        string = f'select * from {database}.{tableName} Where'
+        
+        count = 0
+        listOfKeys = session.keys()
+        if(len(listOfKeys)>0):
+            for key,value in session.items():
+                if(value):
+                    string = string +' '+ key + "LIKE %(word"+str(count)+")s "
+                    paramDict["word"+str(count)] = "%"+value+"%"
+                    if count != (len(listOfKeys) - 1):
+                        string = string + "AND "
+                    count += 1    
+
+                    
+                else: 
+                    string = ""
+            
+                    
+        else:
+            string = ""
+    # else:
+    #     string = f'select * from {database}.{tableName}'
+    #     paramDict =  dict()
     
-     
     return string, paramDict
 
 def lazy(query,shape,param="none"):
@@ -132,12 +135,11 @@ def load():
     counter = int(data[4])
     query,params = queryBuilder(database,table,word,column)
     # session["query"] = [query,params]
-    print(query,params)
     if query:
         print(f"Returning posts {counter} to {counter + 35}")
         res = make_response(jsonify(lazy(query+' limit '+str(counter)+',35;',counter,params)), 200)
     else:
-        res = make_response(jsonify(lazy("select * from cenCiscoXE_Interface "+' limit '+str(counter)+',35;',counter)), 200)
+        res = make_response(jsonify(lazy(f"select * from {database}.{table} "+' limit '+str(counter)+',35;',counter)), 200)
     
     return res
     
@@ -156,42 +158,53 @@ def downloadFile():
     query,params = queryBuilder(database,table,word,column)
     # query = "select * from CEN_db_mysql.cenCiscoXE_Interface limit 0,1;"
     # params = "none"
-    print(query,params)
     
     startTime = time.time()
+    if(not query):
+        query = f"select * from {database}.{table};"
     if params!= "none":
         df1 = pd.read_sql(query, con=db_connection,params=params)
     else:
         df1 = pd.read_sql(query, con=db_connection )
-    
-    # x = df1.astype(str).values.flatten().tolist()
-    
 
-    # def generate():
+        # def generate():
     #     for ele in x:
     #        yield ','.join(ele.split())  + '\n'
     # return Response(generate(), mimetype='text/csv')
     buffer = BytesIO()
     buffer.write(df1.to_csv().encode('utf-8'))
     buffer.seek(0)
-    
-    return send_file(buffer,
-                     mimetype='text/csv',
-                     attachment_filename='downloadFile.csv',
-                     as_attachment=True)
-    # name = "report.csv"
-    # maxSize = 10
-    # if df1.shape[0] < maxSize:
-    #     resp = make_response(df1.to_csv())
-    #     resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
-    #     resp.headers["Content-Type"] = "text/csv"
 
-    #     return resp
-    # else:
-    #    for ele in df1.iterrows():
-    #        print(type(ele))
+    return send_file(buffer,mimetype='text/csv',attachment_filename='report.csv',as_attachment=True)
+    
+
 
     
+
+@app.route('/tableInfo')
+def tableInfo():
+    if request.args:
+        mainData = request.args.get("c")
+    # startTime = time.time()
+    
+    data = mainData.split(",")
+    database = data[0] 
+    table = data[1]
+    
+    rows = pd.read_sql(f'select count(*) from {database}.{table}', con=db_connection)['count(*)'].iloc[0]
+    size = pd.read_sql(f'SELECT table_name AS `Table`, round(((data_length + index_length) / 1024 / 1024)*4, 2) `Size in MB` FROM information_schema.TABLES WHERE table_schema = "{database}"    AND table_name = "{table}";', con=db_connection)['Size in MB'].iloc[0]
+    # endTime = time.time()
+    # print(endTime-startTime)
+    return str(f"{rows}/{size}")
+    
+    
+class fetch(Resource):
+    def get(self, database, table):
+        df = pd.read_sql(f"select * from {database}.{table} limit 0,100", con=db_connection )
+        return df.to_json(orient='split')
+
+api.add_resource(fetch, '/fetch/<database>/<table>')
+        
     
     
 

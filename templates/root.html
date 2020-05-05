@@ -5,10 +5,10 @@
 </head>
 
 
-
+<title>INGRESS</title>
 <body>
     <header>
-        <p style="color:#FF083B;margin:15px 70px 15px 70px;"><i class="fa fa-bolt" aria-hidden="true"></i> Ingress</p>
+        <a href="{{ url_for('index') }}" style="color:#FF083B;text-decoration: none;"><p style="color:#FF083B;margin:15px 70px 15px 70px;"><i class="fa fa-bolt" aria-hidden="true"></i> Ingress</p></a>
         <p><i class="fa fa-database" aria-hidden="true"></i> Database: </p>
         <select onchange="selectDatabase(this.value)" class="database">
             <option value="" selected disabled hidden>Choose Database</option>
@@ -33,10 +33,14 @@
 
             <tbody class="tablebody">
             </tbody>
+            
         </table>
-
-        <div class="END"></div>
         <div class="watcher"></div>
+        <div class="container">
+            <h1>Loading...</h1>
+            
+          </div>
+        
     </div>
 
 
@@ -48,12 +52,14 @@
     let tableName = ""
     let counter = 0;
     let timeout = null;
+    var controller;
+    var redundantRequests = 0
     window.userData = ["database", "table", "nocolumn", "noword", counter];
     var table = document.querySelector('.tablebody');
     watcher = document.querySelector(".watcher")
+    loader = document.querySelector(".container")
 
     database = document.querySelector(".database")
-
     function showSearchfilter(e) {
         e.parentNode.parentNode.childNodes[1].childNodes[1].style.display = "block";
     }
@@ -61,17 +67,19 @@
         e.parentNode.parentNode.childNodes[1].childNodes[3].style.display = "block";
     }
     async function loadItems() {
-        
+
         let response1 = await fetch(`/load?c=${window.userData}`)
         let data1 = await response1.json().then(data1 => {
-           
-            
+
+
             table.insertAdjacentHTML("beforeend", data1);
-            window.userData[4] += 35; 
+            window.userData[4] += 35;
             if (table.childNodes.length < 70) {
+                loader.style.display = "none"
                 watcher.style.display = "none";
             }
-            else{
+            else {
+                loader.style.display = "block"
                 watcher.style.display = "block";
             }
         })
@@ -95,14 +103,9 @@
     async function tableSelect(e) {
         document.querySelector(".terminal-window").style.display = "block"
         document.querySelector(".header").textContent = `TableName:  ${e}`
-        
+
         document.querySelector(".download").innerHTML = `Export to .CSV <i style="color:#FF083B;padding-left:5px"class="fa fa-download" aria-hidden="true"></i>`
-        let tableData = `<p>Table Information</p>
-        <p class="tableName1"></p>
-        <p>Number of Rows</p>
-        <p>Number of Columns</p>`
-        document.querySelector(".tableInfo").innerHTML = tableData;
-        document.querySelector(".tableName1").textContent = `TableName:  ${e}`
+       
         if (document.querySelector('.tablebody').innerHTML.length > 13) {
             document.querySelector('.tablebody').innerHTML = ""
         }
@@ -125,48 +128,104 @@
                     </th>`
                 counterForLoop += 1
             })
+       
+        
             document.querySelector(".headersOfTable").innerHTML = string;
             document.querySelector(".iconsOfTable").innerHTML = string2;
 
         })
+        watcher.style.display = "block";
         intersectionObserver.observe(watcher)
+        let abab = await fetch(`/tableInfo?c=${window.userData[0]},${e}`)
+        let baba = await abab.text().then(ele=>{
+        tableinfo1 = ele.split("/")
+        let tableData = `<p>Table Information</p>
+        <p class="tableName1"></p>
+        <p>Table Size: ${tableinfo1[1]} MB</p>
+        <p>Number of Rows: ${tableinfo1[0]}</p>
+        <p>Number of Columns: ${counterForLoop +1}</p>`
+        document.querySelector(".tableInfo").innerHTML = tableData;
+        document.querySelector(".tableName1").textContent = `TableName:  ${e}`
+        })
+        
 
 
     }
 
     async function filterContent(e) {
+
+        if ((e.charCode || e.keyCode) === 13) {
+            e.preventDefault();
+        }
+        watcher.style.display = "none";
+        let index = e.parentNode.parentNode.parentNode.className
+        let columnName = document.getElementsByClassName('realheader')[Number(index.split(" ")[1]) + 1].textContent
+        window.userData[2] = columnName;
+        window.userData[3] = e.value;
+        window.userData[4] = counter;
         
-        clearTimeout(timeout);
+       
+        table.innerHTML = "";
+
+        if (controller) {
+            controller.abort();
+        }
+        if (AbortController) {
+            controller = new AbortController();
+            var signal = controller.signal;
+        }
+        fetch(`/load?c=${window.userData}`, { signal })
+            .then(function (response) {
+                // console.log("response", response);
+                response.json().then((data) => {
+                    table.insertAdjacentHTML("beforeend", data);
+                    window.userData[4] = 35;
+                    watcher.style.display = "block";
+                    
+                })
+
+            })
+            .catch(function (e) {
+                if (e.name === "AbortError") {
+                    redundantRequests++;
+                    console.log(redundantRequests)
+                }
+
+            })
         
-        timeout = await setTimeout(function () {
-            if ((e.charCode || e.keyCode) === 13) {
-                e.preventDefault();
-            }
-           
-            let index = e.parentNode.parentNode.parentNode.className
-            let columnName = document.getElementsByClassName('realheader')[Number(index.split(" ")[1]) + 1].textContent
-            window.userData[2] = columnName;
-            window.userData[3] = e.value;
-            window.userData[4] = counter;
-            watcher.style.display = "block"
-            table.innerHTML = ""
-           
-        }, 200);
+        
+        
+        // clearTimeout(timeout);
+
+        // timeout = await setTimeout(function () {
+        //     if ((e.charCode || e.keyCode) === 13) {
+        //         e.preventDefault();
+        //     }
+
+        //     let index = e.parentNode.parentNode.parentNode.className
+        //     let columnName = document.getElementsByClassName('realheader')[Number(index.split(" ")[1]) + 1].textContent
+        //     window.userData[2] = columnName;
+        //     window.userData[3] = e.value;
+        //     window.userData[4] = counter;
+        //     watcher.style.display = "block"
+        //     table.innerHTML = ""
+
+        // }, 200);
 
     }
 
     async function downloadFile() {
-        document.querySelector(".download").textContent = `Exporting`
+        document.querySelector(".download").innerHTML = `<span style="animation:fade 2s infinite;;">Exporting</span>`
         await fetch(`/downloadFile?c=${window.userData}`).then(function (response) {
             // returns a Headers{} object
             response.blob().then(function (myBlob) {
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(myBlob);
-                link.download = "filename.csv";
+                link.download = "report.csv";
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                document.querySelector(".download").textContent = `Export to .CSV <i style="color:#FF083B;padding-left:5px"class="fa fa-download" aria-hidden="true"></i>`
+                document.querySelector(".download").innerHTML = `Export to .CSV <i style="color:#FF083B;padding-left:5px"class="fa fa-download" aria-hidden="true"></i>`
             });
         });
         // let data1 = await response1.blob().then(data1 => {
@@ -193,7 +252,7 @@
         // })
     }
     var intersectionObserver = new IntersectionObserver(entries => {
-      
+
         if (entries[0].intersectionRatio <= 0) {
             return;
         }
