@@ -1,29 +1,38 @@
 <head>
     <link rel="stylesheet" href="{{ url_for('static', filename='./css/main.css') }}" type="text/css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <!-- <script type="text/javascript" src="{{ url_for('static', filename='./js/xlsx.full.min.js') }}"></script> -->
 </head>
 
 
 <title>INGRESS</title>
+
 <body>
     <header>
-        <a href="{{ url_for('index') }}" style="color:#FF083B;text-decoration: none;"><p style="color:#FF083B;margin:15px 70px 15px 70px;"><i class="fa fa-bolt" aria-hidden="true"></i> Ingress</p></a>
-        <p><i class="fa fa-database" aria-hidden="true"></i> Database: </p>
+        <a href="{{ url_for('home') }}" style="color:#FF083B;text-decoration: none;">
+            <p style="color:#FF083B;margin:15px 70px 15px 60px;"><i class="fa fa-bolt" aria-hidden="true"></i> Ingress
+            </p>
+        </a>
+        <p>Database: </p>
         <select onchange="selectDatabase(this.value)" class="database">
             <option value="" selected disabled hidden>Choose Database</option>
             <option value="router_db_mysql">MPLS ISP Database</option>
             <option value="CEN_db_mysql">CEN Database</option>
+            <option value="twampAuditTxDB">TWAMP Database</option>
         </select>
         <p class="header"></p>
         <p class="download" onClick="downloadFile()"></p>
+        <p class="clearFilter" onClick="clearFilter()"></p>
+        <p class="logout" onClick="logout()" style="position: absolute; top:2px;left:92.5%"><a href="{{ url_for('dropsession') }}" style="color:black;text-decoration: none;">Logout <i
+                    style="color:#FF083B;padding-left:5px" class="fa fa-sign-out" aria-hidden="true"></i></a></p>
+        <!-- <p class="globalSearch" style="position: absolute; top:-1px;left:77.8%" ><input name="form" class="globalfilter" type="text" autocomplete="off"
+            placeholder="Global filter" /></p> -->
+            
     </header>
     <nav class="tableNames"></nav>
     <div class="tableInfo"></div>
     <div class="terminal-window">
 
         <table class="table123">
-
             <thead>
                 <tr class="headersOfTable"></tr>
             </thead>
@@ -33,14 +42,14 @@
 
             <tbody class="tablebody">
             </tbody>
-            
+
         </table>
         <div class="watcher"></div>
         <div class="container">
             <h1>Loading...</h1>
-            
-          </div>
-        
+
+        </div>
+
     </div>
 
 
@@ -60,6 +69,28 @@
     loader = document.querySelector(".container")
 
     database = document.querySelector(".database")
+    function clearFilter() {
+        let tableName
+        if (window.userData[1] === 'A9K_Cx_DB') { tableName = "MPLS Customer" }
+        else if (window.userData[1] === 'ISIS_Table') { tableName = "MPLS Backbone" }
+        else if (window.userData[1] === 'A9K_Interface') { tableName = "MPLS Interface" }
+        else if (window.userData[1] === 'A9K_Static') { tableName = "MPLS Static" }
+        else if (window.userData[1] === 'A9K_VRF') { tableName = "MPLS VRF" }
+        else if (window.userData[1] === 'A9K_VRF_BGP') { tableName = "MPLS VRF BGP" }
+        else if (window.userData[1] === 'A9K_OSPF') { tableName = "MPLS OSPF" }
+        else if (window.userData[1] === 'Junos_ISP_Community') { tableName = "ISP Community" }
+        else if (window.userData[1] === 'Junos_ISP_Policy_Statment') { tableName = "ISP Policy Statment" }
+        else if (window.userData[1] === 'Junos_ISP_as_path') { tableName = "ISP as path" }
+        else if (window.userData[1] === 'A9K_VRF_Interface') { tableName = "MPLS VRF Interface" }
+        else if (window.userData[1] === 'Junos_ISP_ISIS') { tableName = "ISP Backbone" }
+        else if (window.userData[1] === 'Junos_ISP_bgp') { tableName = "ISP BGP" }
+        else if (window.userData[1] === 'Junos_PEER_Interface') { tableName = "Peering Table" }
+        else if (window.userData[1] === 'Junos_ISP_Static') { tableName = "ISP Static" }
+        else if (window.userData[1] === 'Junos_ISP_interface') { tableName = "ISP Interface" }
+        else if (window.userData[1] === 'mapa_table') { tableName = "Mapa Table" }
+        else { tableName = window.userData[1] }
+        tableSelect(window.userData[1], tableName)
+    }
     function showSearchfilter(e) {
         e.parentNode.parentNode.childNodes[1].childNodes[1].style.display = "block";
     }
@@ -93,19 +124,43 @@
         let data = await response.json().then(data => {
             main = data["Tables_in_" + e]
             Object.keys(main).forEach(ele => {
-                string = string + `<p onclick='tableSelect(this.textContent)'><i class="fa fa-table" aria-hidden="true"></i>${main[ele]}</p>`
+                let tableName
+                if (main[ele] === 'A9K_Cx_DB') { tableName = "MPLS Customer" }
+                else if (main[ele] === 'ISIS_Table') { tableName = "MPLS Backbone" }
+                else if (main[ele] === 'A9K_Interface') { tableName = "MPLS Interface" }
+                else if (main[ele] === 'A9K_Static') { tableName = "MPLS Static" }
+                else if (main[ele] === 'A9K_VRF') { tableName = "MPLS VRF" }
+                else if (main[ele] === 'Junos_ISP_Community') { tableName = "ISP Community" }
+                else if (main[ele] === 'Junos_ISP_Policy_Statment') { tableName = "ISP Policy Statment" }
+                else if (main[ele] === 'Junos_ISP_as_path') { tableName = "ISP as path" }
+                
+                else if (main[ele] === 'A9K_VRF_BGP') { tableName = "MPLS VRF BGP" }
+                else if (main[ele] === 'A9K_OSPF') { tableName = "MPLS OSPF" }
+                else if (main[ele] === 'A9K_VRF_Interface') { tableName = "MPLS VRF Interface" }
+                else if (main[ele] === 'Junos_ISP_ISIS') { tableName = "ISP Backbone" }
+                else if (main[ele] === 'Junos_ISP_bgp') { tableName = "ISP BGP" }
+                else if (main[ele] === 'Junos_PEER_Interface') { tableName = "Peering Table" }
+                else if (main[ele] === 'Junos_ISP_Static') { tableName = "ISP Static" }
+                else if (main[ele] === 'Junos_ISP_interface') { tableName = "ISP Interface" }
+                else if (main[ele] === 'mapa_table') { tableName = "Mapa Table" }
+                else { tableName = main[ele] }
+                string = string + `<p onclick='tableSelect("${main[ele]}","${tableName}")'><i class="fa fa-table" aria-hidden="true"></i>${tableName}</p>`
             })
+            
             string = string + ``
             document.querySelector(".tableNames").innerHTML = string;
         })
     }
 
-    async function tableSelect(e) {
+    async function tableSelect(e, name) {
+        console.log(name)
         document.querySelector(".terminal-window").style.display = "block"
-        document.querySelector(".header").textContent = `TableName:  ${e}`
+        if (name) { document.querySelector(".header").innerHTML = `TableName:   <span style="color:#FF083B;">${name}</span>` }
+        else { document.querySelector(".header").innerHTML = `TableName:   <span style="color:#FF083B;">${e}</span>` }
 
         document.querySelector(".download").innerHTML = `Export to .CSV <i style="color:#FF083B;padding-left:5px"class="fa fa-download" aria-hidden="true"></i>`
-       
+        document.querySelector(".clearFilter").innerHTML = `clearFilters <i class="fa fa-ban" style="color:#FF083B;padding-left:5px"aria-hidden="true"></i>`
+
         if (document.querySelector('.tablebody').innerHTML.length > 13) {
             document.querySelector('.tablebody').innerHTML = ""
         }
@@ -114,7 +169,9 @@
         let counterForLoop = 0
 
         window.userData[4] = 0;
-        window.userData[3] = ""
+        window.userData[3] = "noword";
+        window.userData[2] = "nocolumn";
+
         window.userData[1] = e;
         let response = await fetch(`/tableHeaders?c=${window.userData}`)
         let data = await response.json().then(data => {
@@ -128,26 +185,28 @@
                     </th>`
                 counterForLoop += 1
             })
-       
-        
+
+
             document.querySelector(".headersOfTable").innerHTML = string;
             document.querySelector(".iconsOfTable").innerHTML = string2;
 
         })
         watcher.style.display = "block";
+        watcher.style.width = (200 * (counterForLoop + 1) + 80).toString() + 'px'
+        console.log((200 * (counterForLoop + 1) + 80).toString() + 'px')
         intersectionObserver.observe(watcher)
         let abab = await fetch(`/tableInfo?c=${window.userData[0]},${e}`)
-        let baba = await abab.text().then(ele=>{
-        tableinfo1 = ele.split("/")
-        let tableData = `<p>Table Information</p>
+        let baba = await abab.text().then(ele => {
+            tableinfo1 = ele.split("/")
+            let tableData = `<p>Table Information</p>
         <p class="tableName1"></p>
         <p>Table Size: ${tableinfo1[1]} MB</p>
-        <p>Number of Rows: ${tableinfo1[0]}</p>
-        <p>Number of Columns: ${counterForLoop +1}</p>`
-        document.querySelector(".tableInfo").innerHTML = tableData;
-        document.querySelector(".tableName1").textContent = `TableName:  ${e}`
+        <p class="rows">Number of Rows: ${tableinfo1[0]}</p>
+        <p>Number of Columns: ${counterForLoop + 1}</p>`
+            document.querySelector(".tableInfo").innerHTML = tableData;
+
         })
-        
+
 
 
     }
@@ -163,8 +222,8 @@
         window.userData[2] = columnName;
         window.userData[3] = e.value;
         window.userData[4] = counter;
-        
-       
+
+
         table.innerHTML = "";
 
         if (controller) {
@@ -181,7 +240,7 @@
                     table.insertAdjacentHTML("beforeend", data);
                     window.userData[4] = 35;
                     watcher.style.display = "block";
-                    
+
                 })
 
             })
@@ -192,25 +251,8 @@
                 }
 
             })
-        
-        
-        
-        // clearTimeout(timeout);
 
-        // timeout = await setTimeout(function () {
-        //     if ((e.charCode || e.keyCode) === 13) {
-        //         e.preventDefault();
-        //     }
 
-        //     let index = e.parentNode.parentNode.parentNode.className
-        //     let columnName = document.getElementsByClassName('realheader')[Number(index.split(" ")[1]) + 1].textContent
-        //     window.userData[2] = columnName;
-        //     window.userData[3] = e.value;
-        //     window.userData[4] = counter;
-        //     watcher.style.display = "block"
-        //     table.innerHTML = ""
-
-        // }, 200);
 
     }
 
@@ -228,28 +270,7 @@
                 document.querySelector(".download").innerHTML = `Export to .CSV <i style="color:#FF083B;padding-left:5px"class="fa fa-download" aria-hidden="true"></i>`
             });
         });
-        // let data1 = await response1.blob().then(data1 => {
-        //     console.log(response.headers);
-        // })
-        // document.querySelector(".download").textContent = `Downloaded`
-        // document.querySelector(".download").innerHTML = `<a href="{{ url_for('downloadFile',c='') }}"`+window.userData+`>ISP-ISIS_LDP_Missing_Report.csv</a>`
-        // console.log(`<a href="{{ url_for('downloadFile',c='') }}"  `+window.userData+`>ISP-ISIS_LDP_Missing_Report.csv</a>`)
-        //     console.log("request sent")
-        //     var newDiv = document.createElement('div');
-        //     newDiv.innerHTML = ele;
-        //     console.log("loaded to browser")
-        //     var ws = XLSX.utils.table_to_sheet(newDiv.childNodes[0]);
 
-        //     /* add to workbook */
-        //     var wb = XLSX.utils.book_new();
-        //     XLSX.utils.book_append_sheet(wb, ws, "People");
-
-        //     /* generate an XLSX file */
-
-
-
-        //     return XLSX.writeFile(wb, "sheetjs.xlsx");
-        // })
     }
     var intersectionObserver = new IntersectionObserver(entries => {
 
